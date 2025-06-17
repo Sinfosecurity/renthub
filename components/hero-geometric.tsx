@@ -178,7 +178,7 @@ export default function HeroGeometric() {
           >
             <p className="text-base sm:text-lg md:text-xl text-white/40 mb-12 leading-relaxed font-light tracking-wide max-w-2xl mx-auto px-4">
               From professional equipment to everyday essentials. Quality items,
-              seamless experience.
+              trusted owners, seamless experience.
             </p>
           </motion.div>
 
