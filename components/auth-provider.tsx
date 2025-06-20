@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
-import type { User } from "@supabase/supabase-js"
-import { supabase } from "@/lib/supabase"
+import type React from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 
 interface AuthContextType {
-  user: User | null
-  loading: boolean
-  signOut: () => Promise<void>
+  user: User | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signOut: async () => {},
-})
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get initial session
@@ -28,60 +28,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const {
           data: { session },
           error,
-        } = await supabase.auth.getSession()
+        } = await supabase.auth.getSession();
 
         if (error) {
-          console.error("Error getting session:", error)
+          console.error("Error getting session:", error);
         }
 
-        setUser(session?.user ?? null)
+        setUser(session?.user ?? null);
       } catch (error) {
-        console.error("Error in getInitialSession:", error)
+        console.error("Error in getInitialSession:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    getInitialSession()
+    getInitialSession();
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email)
-      setUser(session?.user ?? null)
-      setLoading(false)
+      console.log("Auth state changed:", event, session?.user?.email);
+      setUser(session?.user ?? null);
+      setLoading(false);
 
       // Handle sign in success
       if (event === "SIGNED_IN" && session?.user) {
-        console.log("User signed in, redirecting to home...")
+        console.log("User signed in, redirecting to home...");
         // Small delay to ensure state is updated
         setTimeout(() => {
-          window.location.href = "/"
-        }, 100)
+          window.location.href = "/";
+        }, 100);
       }
-    })
+    });
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut()
+      await supabase.auth.signOut();
       // Force redirect to home page after sign out
-      window.location.href = "/"
+      window.location.href = "/";
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error("Error signing out:", error);
     }
-  }
+  };
 
-  return <AuthContext.Provider value={{ user, loading, signOut }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, loading, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
-}
+  return context;
+};

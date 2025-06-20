@@ -1,131 +1,132 @@
-"use client"
+// "use client";
 
-import Link from "next/link"
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { signIn } from "@/lib/data-service"
+// import { useState } from "react";
+// import { useRouter } from "next/navigation";
+// import { supabase } from "@/lib/supabase";
+
+// export function SignInForm() {
+//   const [email, setEmail] = useState("");
+//   const [password, setPassword] = useState("");
+//   const [error, setError] = useState("");
+//   const router = useRouter();
+
+//   const handleSignIn = async (e: React.FormEvent) => {
+//     e.preventDefault();
+//     setError("");
+//     const { error } = await supabase.auth.signInWithPassword({
+//       email,
+//       password,
+//     });
+//     if (error) {
+//       setError(error.message);
+//     } else {
+//       router.push("/"); // Redirect on success
+//     }
+//   };
+
+//   return (
+//     <form onSubmit={handleSignIn}>
+//       <input
+//         type="email"
+//         value={email}
+//         onChange={(e) => setEmail(e.target.value)}
+//         placeholder="Email"
+//         required
+//       />
+//       <input
+//         type="password"
+//         value={password}
+//         onChange={(e) => setPassword(e.target.value)}
+//         placeholder="Password"
+//         required
+//       />
+//       {error && <div>{error}</div>}
+//       <button type="submit">Sign In</button>
+//     </form>
+//   );
+// }
+
+"use client";
+
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
+interface SignInFormData {
+  email: string;
+  password: string;
+}
 
 export function SignInForm() {
-  const router = useRouter()
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+    clearErrors,
+  } = useForm<SignInFormData>();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
-
-    // Validation
-    if (!formData.email.trim()) {
-      setError("Email is required")
-      setLoading(false)
-      return
-    }
-
-    if (!formData.password.trim()) {
-      setError("Password is required")
-      setLoading(false)
-      return
-    }
+  const onSubmit = async (data: SignInFormData) => {
+    clearErrors();
 
     try {
-      const result = await signIn(formData.email, formData.password)
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
 
-      if (result.user) {
-        // Force a page refresh to update auth state and redirect
-        window.location.href = "/"
+      if (error) {
+        setError("root", { message: error.message });
+      } else {
+        router.push("/"); // Redirect on success
       }
-    } catch (err: any) {
-      console.error("Sign in error:", err)
-      setError(err.message || "Invalid email or password")
-    } finally {
-      setLoading(false)
+    } catch (err) {
+      setError("root", { message: "An unexpected error occurred" });
     }
-  }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
-
+    <form onSubmit={handleSubmit(onSubmit)}>
       <div>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
+        <input
           type="email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="bg-gray-800 border-gray-700 text-white"
-          placeholder="Enter your email"
-          required
+          placeholder="Email"
+          {...register("email", {
+            required: "Email is required",
+            pattern: {
+              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+              message: "Invalid email address",
+            },
+          })}
         />
+        {errors.email && (
+          <div style={{ color: "red" }}>{errors.email.message}</div>
+        )}
       </div>
 
       <div>
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="bg-gray-800 border-gray-700 text-white pr-10"
-            placeholder="Enter your password"
-            required
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-          >
-            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <input
-            id="remember"
-            type="checkbox"
-            className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
-          />
-          <Label htmlFor="remember" className="ml-2 text-sm text-gray-400">
-            Remember me
-          </Label>
-        </div>
-        <Link href="/auth/forgot-password" className="text-sm text-blue-400 hover:text-blue-300">
-          Forgot password?
-        </Link>
-      </div>
-
-      <Button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Signing in...
-          </>
-        ) : (
-          "Sign In"
+        <input
+          type="password"
+          placeholder="Password"
+          {...register("password", {
+            required: "Password is required",
+            minLength: {
+              value: 6,
+              message: "Password must be at least 6 characters",
+            },
+          })}
+        />
+        {errors.password && (
+          <div style={{ color: "red" }}>{errors.password.message}</div>
         )}
-      </Button>
+      </div>
+
+      {errors.root && <div style={{ color: "red" }}>{errors.root.message}</div>}
+
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Signing In..." : "Sign In"}
+      </button>
     </form>
-  )
+  );
 }
